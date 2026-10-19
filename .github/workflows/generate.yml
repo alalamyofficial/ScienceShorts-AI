@@ -1,0 +1,45 @@
+
+name: Generate ScienceShorts
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 8 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Download project
+        uses: actions/checkout@v4
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Install requirements
+        run: pip install -r requirements.txt
+
+      - name: Generate videos
+        run: python main.py
+
+      - name: Save videos for download
+        uses: actions/upload-artifact@v4
+        with:
+          name: science-shorts-videos
+          path: |
+            *.mp4
+            *.srt
+            *.json
+          if-no-files-found: warn
+          retention-days: 7
