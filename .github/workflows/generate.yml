@@ -13,6 +13,7 @@ jobs:
   generate:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+
     steps:
       - name: Download project
         uses: actions/checkout@v4
@@ -38,8 +39,9 @@ jobs:
         with:
           name: science-shorts-videos
           path: |
-            *.mp4
-            *.srt
-            *.json
-          if-no-files-found: warn
+            output/*.mp4
+            output/*.srt
+            output/*.json
+            output/manifest.json
+          if-no-files-found: error
           retention-days: 7
