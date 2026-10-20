@@ -17,6 +17,9 @@ jobs:
     steps:
       - name: Download project
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
 
       - name: Install Python
         uses: actions/setup-python@v5
@@ -29,10 +32,14 @@ jobs:
           sudo apt-get install -y ffmpeg
 
       - name: Install requirements
-        run: pip install -r requirements.txt
+        run: python -m pip install -r requirements.txt
 
       - name: Generate videos
-        run: python main.py
+        run: |
+          python -u main.py
+          echo "=== Generated files ==="
+          find output -maxdepth 1 -type f -printf '%f %s bytes\n'
+          test "$(find output -maxdepth 1 -type f -name '*.mp4' | wc -l)" -eq 3
 
       - name: Save videos for download
         uses: actions/upload-artifact@v4
@@ -42,6 +49,5 @@ jobs:
             output/*.mp4
             output/*.srt
             output/*.json
-            output/manifest.json
           if-no-files-found: error
           retention-days: 7
