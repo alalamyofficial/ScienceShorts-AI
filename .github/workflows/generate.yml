@@ -22,53 +22,66 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: pip
-          cache-dependency-path: requirements.txt
 
       - name: Install FFmpeg
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
-          ffmpeg -version
+          echo "=== FFmpeg version ==="
+          ffmpeg -version | head -n 2
+          echo "=== FFprobe version ==="
+          ffprobe -version | head -n 1
 
       - name: Install requirements
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
 
-      - name: Check project files
+      - name: Check project
         run: |
           echo "=== CURRENT DIRECTORY ==="
           pwd
           echo "=== PROJECT FILES ==="
           ls -lah
-          echo "=== MAIN.PY ==="
-          test -f main.py
-          echo "main.py exists"
-          echo "=== REQUIREMENTS ==="
-          test -f requirements.txt
-          echo "requirements.txt exists"
+          echo "=== CHECK PYTHON SYNTAX ==="
+          python -m py_compile main.py
+          echo "Python syntax is valid."
 
       - name: Generate videos
+        shell: bash
         run: |
-          set -e
-          echo "=== STARTING VIDEO GENERATION ==="
+          set -Eeuo pipefail
+
+          echo "=== START VIDEO GENERATION ==="
           python -u main.py
-          echo "=== OUTPUT DIRECTORY ==="
-          if [ -d output ]; then
-            ls -lah output
-          else
-            echo "ERROR: output directory was not created"
+
+          echo "=== CHECK OUTPUT DIRECTORY ==="
+          if [ ! -d output ]; then
+            echo "ERROR: output directory does not exist."
             exit 1
           fi
-          echo "=== GENERATED FILES ==="
-          find output -maxdepth 1 -type f -print
-          echo "=== CHECK MP4 FILES ==="
-          find output -maxdepth 1 -type f -name '*.mp4' -print
-          MP4_COUNT=$(find output -maxdepth 1 -type f -name '*.mp4' | wc -l)
-          echo "MP4 count: $MP4_COUNT"
-          if [ "$MP4_COUNT" -eq 0 ]; then
-            echo "ERROR: No MP4 videos were generated"
+
+          echo "=== ALL OUTPUT FILES ==="
+          find output -maxdepth 1 -type f -printf '%f (%s bytes)\n'
+
+          echo "=== VERIFY MP4 VIDEOS ==="
+          count=0
+
+          for file in output/*.mp4; do
+            [ -f "$file" ] || continue
+
+            echo "Checking: $file"
+            ffprobe -v error \
+              -show_entries format=duration \
+              -of default=noprint_wrappers=1:nokey=1 "$file"
+
+            count=$((count + 1))
+          done
+
+          echo "Valid MP4 files: $count"
+
+          if [ "$count" -eq 0 ]; then
+            echo "ERROR: No MP4 videos were generated."
             exit 1
           fi
 
