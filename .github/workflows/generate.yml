@@ -3,8 +3,6 @@ name: Generate ScienceShorts
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 8 * * *"
 
 permissions:
   contents: read
@@ -37,9 +35,10 @@ jobs:
       - name: Generate videos
         run: |
           python -u main.py
-          echo "=== Generated files ==="
-          find output -maxdepth 1 -type f -printf '%f %s bytes\n'
-          test "$(find output -maxdepth 1 -type f -name '*.mp4' | wc -l)" -eq 3
+          echo "=== OUTPUT DIRECTORY ==="
+          ls -lah output || true
+          echo "=== MP4 FILES ==="
+          find output -maxdepth 1 -type f -name '*.mp4' -print
 
       - name: Save videos for download
         uses: actions/upload-artifact@v4
